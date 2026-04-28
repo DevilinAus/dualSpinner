@@ -15,14 +15,19 @@
     {
       "name": "sponge",
       "copies": 2
+    },
+    {
+      "name": "alakazam",
+      "copies": 1
+    },
+    {
+      "name": "gengar",
+      "copies": 1
     }
   ],
   "playerDecks": {
-    "Andrew": [
-      "alakazam"
-    ],
-    "Mark": [
-      "gengar"
-    ]
+    "Andrew": [],
+    "Liam": [],
+    "Mark": []
   }
 }

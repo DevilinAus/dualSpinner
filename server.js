@@ -9,6 +9,7 @@ const DATA_FILE = path.join(DATA_DIR, "decks.json");
 const PLAYER_POOLS = {
   Andrew: "shared",
   Kirsten: "shared",
+  Liam: "liam",
   Mark: "mark",
 };
 const RETRO_LABEL = "RETRO";
@@ -17,8 +18,11 @@ const DEFAULT_STATE = {
   player1: "Andrew",
   player2: "Mark",
   retroEnabled: false,
+  disableMainMirror: false,
+  combinePlayerDeckPools: false,
   disableRetroMirror: false,
   sharedDecks: [],
+  liamDecks: [],
   markDecks: [],
   player1Deck: "",
   player2Deck: "",
@@ -76,6 +80,32 @@ function sanitizePlayer(playerName, fallbackPlayer) {
   return VALID_PLAYERS.has(playerName) ? playerName : fallbackPlayer;
 }
 
+function getDecksForPlayer(playerName, deckPools) {
+  return deckPools[PLAYER_POOLS[playerName]] || [];
+}
+
+function formatOwnedDeckName(ownerName, deckName) {
+  const possessiveName = ownerName.endsWith("s") ? `${ownerName}'` : `${ownerName}'s`;
+  return `${possessiveName} ${deckName}`;
+}
+
+function buildDeckValuesForPlayer(
+  activePlayerName,
+  selectedPlayerNames,
+  deckPools,
+  combinePlayerDeckPools
+) {
+  const ownerNames = combinePlayerDeckPools
+    ? Array.from(new Set(selectedPlayerNames))
+    : [activePlayerName];
+
+  return ownerNames.flatMap((ownerName) =>
+    getDecksForPlayer(ownerName, deckPools).map((deckName) =>
+      combinePlayerDeckPools ? formatOwnedDeckName(ownerName, deckName) : deckName
+    )
+  );
+}
+
 function sanitizeSelectedDeck(selectedDeck, availableDecks, retroEnabled) {
   if (typeof selectedDeck !== "string") {
     return "";
@@ -92,13 +122,32 @@ function normalizeState(rawState = {}) {
   const player1 = sanitizePlayer(rawState.player1, DEFAULT_STATE.player1);
   const player2 = sanitizePlayer(rawState.player2, DEFAULT_STATE.player2);
   const retroEnabled = rawState.retroEnabled === true;
+  const combinePlayerDeckPools = rawState.combinePlayerDeckPools === true;
+  const disableMainMirror =
+    combinePlayerDeckPools || rawState.disableMainMirror === true;
   const disableRetroMirror = rawState.disableRetroMirror === true;
   const sharedDecks = sanitizeDeckList(rawState.sharedDecks);
+  const liamDecks = sanitizeDeckList(rawState.liamDecks);
   const markDecks = sanitizeDeckList(rawState.markDecks);
-  const player1DeckPool =
-    PLAYER_POOLS[player1] === "shared" ? sharedDecks : markDecks;
-  const player2DeckPool =
-    PLAYER_POOLS[player2] === "shared" ? sharedDecks : markDecks;
+  const deckPools = {
+    shared: sharedDecks,
+    liam: liamDecks,
+    mark: markDecks,
+  };
+  const playersShareDeckPool =
+    player1 !== player2 && PLAYER_POOLS[player1] === PLAYER_POOLS[player2];
+  const player1DeckPool = buildDeckValuesForPlayer(
+    player1,
+    [player1, player2],
+    deckPools,
+    combinePlayerDeckPools
+  );
+  const player2DeckPool = buildDeckValuesForPlayer(
+    player2,
+    [player1, player2],
+    deckPools,
+    combinePlayerDeckPools
+  );
 
   let player1Deck = sanitizeSelectedDeck(
     rawState.player1Deck,
@@ -112,8 +161,7 @@ function normalizeState(rawState = {}) {
   );
 
   if (
-    PLAYER_POOLS[player1] === "shared" &&
-    PLAYER_POOLS[player2] === "shared" &&
+    (playersShareDeckPool || disableMainMirror) &&
     player1Deck &&
     player1Deck !== RETRO_LABEL &&
     player1Deck === player2Deck
@@ -135,8 +183,11 @@ function normalizeState(rawState = {}) {
     player1,
     player2,
     retroEnabled,
+    disableMainMirror,
+    combinePlayerDeckPools,
     disableRetroMirror,
     sharedDecks,
+    liamDecks,
     markDecks,
     player1Deck,
     player2Deck,

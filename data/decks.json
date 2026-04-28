@@ -1,7 +1,9 @@
 {
   "player1": "Andrew",
-  "player2": "Kirsten",
+  "player2": "Liam",
   "retroEnabled": true,
+  "disableMainMirror": true,
+  "combinePlayerDeckPools": true,
   "disableRetroMirror": true,
   "sharedDecks": [
     "Mega Clefable",
@@ -13,14 +15,11 @@
     "Slop Box",
     "Rocket's Mewtwo"
   ],
+  "liamDecks": [],
   "markDecks": [
-    "Lucario",
-    "frilllish",
-    "deck c",
-    "deck d",
-    "deck 5"
+    "Lucario"
   ],
-  "player1Deck": "N's Zoroark",
-  "player2Deck": "RETRO",
-  "updatedAt": "2026-04-27T14:48:55.416Z"
+  "player1Deck": "Andrew's Mega Dragonite",
+  "player2Deck": "Andrew's Mega Clefable",
+  "updatedAt": "2026-04-28T08:05:16.480Z"
 }

@@ -1,7 +1,19 @@
 const PLAYER_POOLS = {
   Andrew: "shared",
   Kirsten: "shared",
+  Liam: "liam",
   Mark: "mark",
+};
+const RETRO_PLAYER_DATASETS = {
+  Andrew: "Andrew",
+  Kirsten: "Andrew",
+  Liam: "Liam",
+  Mark: "Mark",
+};
+const MAIN_POOL_LABELS = {
+  shared: "Andrew's deck pool",
+  liam: "Liam's deck pool",
+  mark: "Mark's deck pool",
 };
 
 const RETRO_LABEL = "RETRO";
@@ -21,10 +33,13 @@ const DEFAULT_RETRO_DATA = {
     { name: "raindance", copies: 2 },
     { name: "venusaur", copies: 2 },
     { name: "sponge", copies: 2 },
+    { name: "alakazam", copies: 1 },
+    { name: "gengar", copies: 1 },
   ],
   playerDecks: {
-    Andrew: ["alakazam"],
-    Mark: ["gengar"],
+    Andrew: [],
+    Liam: [],
+    Mark: [],
   },
 };
 
@@ -32,8 +47,11 @@ const DEFAULT_STATE = {
   player1: "Andrew",
   player2: "Mark",
   retroEnabled: false,
+  disableMainMirror: false,
+  combinePlayerDeckPools: false,
   disableRetroMirror: false,
   sharedDecks: [],
+  liamDecks: [],
   markDecks: [],
   player1Deck: "",
   player2Deck: "",
@@ -46,20 +64,30 @@ const elements = {
   player1: document.querySelector("#player1"),
   player2: document.querySelector("#player2"),
   retroEnabled: document.querySelector("#retroEnabled"),
+  combinePlayerDeckPools: document.querySelector("#combinePlayerDeckPools"),
+  disableMainMirror: document.querySelector("#disableMainMirror"),
   disableRetroMirror: document.querySelector("#disableRetroMirror"),
   retroOverrideButton: document.querySelector("#retroOverrideButton"),
   spinBothButton: document.querySelector("#spinBothButton"),
   sharedDecks: document.querySelector("#sharedDecks"),
+  liamDecks: document.querySelector("#liamDecks"),
   markDecks: document.querySelector("#markDecks"),
   player1Heading: document.querySelector("#player1Heading"),
   player2Heading: document.querySelector("#player2Heading"),
   player1Pool: document.querySelector("#player1Pool"),
   player2Pool: document.querySelector("#player2Pool"),
+  deckPoolsIntro: document.querySelector("#deckPoolsIntro"),
   player1Result: document.querySelector("#player1Result"),
   player2Result: document.querySelector("#player2Result"),
   wheel1: document.querySelector("#wheel1"),
   wheel2: document.querySelector("#wheel2"),
+  sharedPoolCard: document.querySelector("#sharedPoolCard"),
+  liamPoolCard: document.querySelector("#liamPoolCard"),
+  markPoolCard: document.querySelector("#markPoolCard"),
+  sharedPoolHeading: document.querySelector("#sharedPoolHeading"),
+  sharedDecksLabel: document.querySelector("#sharedDecksLabel"),
   sharedCount: document.querySelector("#sharedCount"),
+  liamCount: document.querySelector("#liamCount"),
   markCount: document.querySelector("#markCount"),
   matchStatus: document.querySelector("#matchStatus"),
   deckStatus: document.querySelector("#deckStatus"),
@@ -162,7 +190,8 @@ function normalizeRetroDeckData(rawData) {
     rawData && typeof rawData.playerDecks === "object" ? rawData.playerDecks : {};
 
   Object.keys(PLAYER_POOLS).forEach((playerName) => {
-    playerDecks[playerName] = sanitizeDeckArray(rawPlayerDecks[playerName]);
+    const datasetKey = RETRO_PLAYER_DATASETS[playerName] || playerName;
+    playerDecks[playerName] = sanitizeDeckArray(rawPlayerDecks[datasetKey]);
   });
 
   return {
@@ -176,13 +205,16 @@ function formatDeckCount(count) {
 }
 
 function getPoolName(playerName) {
-  return PLAYER_POOLS[playerName] === "shared"
-    ? "Andrew + Kirsten shared pool"
-    : "Mark's deck pool";
+  return MAIN_POOL_LABELS[PLAYER_POOLS[playerName]] || "deck pool";
 }
 
-function getDecksForPlayer(playerName, sharedDecks, markDecks) {
-  return PLAYER_POOLS[playerName] === "shared" ? sharedDecks : markDecks;
+function getDecksForPlayer(playerName, deckPools) {
+  return deckPools[PLAYER_POOLS[playerName]] || [];
+}
+
+function formatOwnedDeckName(ownerName, deckName) {
+  const possessiveName = ownerName.endsWith("s") ? `${ownerName}'` : `${ownerName}'s`;
+  return `${possessiveName} ${deckName}`;
 }
 
 function setStatus(element, message, tone) {
@@ -223,16 +255,66 @@ function formatNameList(names) {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-function createMainWheelEntries(decks, retroEnabled) {
-  if (decks.length === 0) {
+function getCombinedPoolDescription(playerNames) {
+  return `combined ${formatNameList(Array.from(new Set(playerNames)))} deck pools`;
+}
+
+function getSharedPoolPresentation(playerNames) {
+  const includesAndrew = playerNames.includes("Andrew");
+  const includesKirsten = playerNames.includes("Kirsten");
+
+  if (includesAndrew && includesKirsten) {
+    return {
+      heading: "Andrew + Kirsten shared deck pool",
+      label: "Andrew and Kirsten shared deck pool",
+    };
+  }
+
+  if (includesKirsten) {
+    return {
+      heading: "Kirsten's deck pool",
+      label: "Kirsten's deck pool shared with Andrew",
+    };
+  }
+
+  return {
+    heading: "Andrew's deck pool",
+    label: "Andrew's deck pool shared with Kirsten",
+  };
+}
+
+function createDeckOptionsForPlayer(
+  activePlayerName,
+  selectedPlayerNames,
+  deckPools,
+  combinePlayerDeckPools
+) {
+  const ownerNames = combinePlayerDeckPools
+    ? Array.from(new Set(selectedPlayerNames))
+    : [activePlayerName];
+
+  return ownerNames.flatMap((ownerName) =>
+    getDecksForPlayer(ownerName, deckPools).map((deckName) => ({
+      label: deckName,
+      value: combinePlayerDeckPools
+        ? formatOwnedDeckName(ownerName, deckName)
+        : deckName,
+      ownerName,
+      deckName,
+    }))
+  );
+}
+
+function createMainWheelEntries(deckOptions, retroEnabled) {
+  if (deckOptions.length === 0) {
     return [];
   }
 
   const deckChance = retroEnabled ? 1 - RETRO_CHANCE : 1;
-  const deckWeight = deckChance / decks.length;
-  const entries = decks.map((deck) => ({
-    label: deck,
-    value: deck,
+  const deckWeight = deckChance / deckOptions.length;
+  const entries = deckOptions.map((deckOption) => ({
+    label: deckOption.label,
+    value: deckOption.value,
     type: "deck",
     weight: deckWeight,
   }));
@@ -350,25 +432,42 @@ function setRetroSummaryPill(element, triggerPlayers) {
   element.textContent = formatRetroResultSummary(triggerPlayers);
 }
 
-function isValidChosenResult(resultText, decks, retroEnabled) {
+function isValidChosenResult(resultText, wheelEntries) {
   if (!resultText) {
     return true;
   }
 
-  if (resultText === RETRO_LABEL) {
-    return retroEnabled;
-  }
+  return wheelEntries.some((entry) => entry.value === resultText);
+}
 
-  return decks.includes(resultText);
+function syncMainSpinnerSettings() {
+  if (elements.combinePlayerDeckPools.checked) {
+    elements.disableMainMirror.checked = true;
+  }
+}
+
+function canAvoidMainMirror(context) {
+  const player1DeckEntries = context.player1WheelEntries.filter(
+    (entry) => entry.type === "deck"
+  );
+
+  return player1DeckEntries.every((entry) =>
+    context.player2WheelEntries.some((option) => option.value !== entry.value)
+  );
 }
 
 function getCurrentState() {
+  syncMainSpinnerSettings();
+
   return {
     player1: elements.player1.value,
     player2: elements.player2.value,
     retroEnabled: elements.retroEnabled.checked,
+    disableMainMirror: elements.disableMainMirror.checked,
+    combinePlayerDeckPools: elements.combinePlayerDeckPools.checked,
     disableRetroMirror: elements.disableRetroMirror.checked,
     sharedDecks: parseDeckList(elements.sharedDecks.value),
+    liamDecks: parseDeckList(elements.liamDecks.value),
     markDecks: parseDeckList(elements.markDecks.value),
     player1Deck: appState.player1Deck,
     player2Deck: appState.player2Deck,
@@ -388,9 +487,15 @@ function applyState(state) {
     ? nextState.player2
     : DEFAULT_STATE.player2;
   elements.retroEnabled.checked = Boolean(nextState.retroEnabled);
+  elements.combinePlayerDeckPools.checked = Boolean(nextState.combinePlayerDeckPools);
+  elements.disableMainMirror.checked =
+    elements.combinePlayerDeckPools.checked || Boolean(nextState.disableMainMirror);
   elements.disableRetroMirror.checked = Boolean(nextState.disableRetroMirror);
   elements.sharedDecks.value = Array.isArray(nextState.sharedDecks)
     ? nextState.sharedDecks.join("\n")
+    : "";
+  elements.liamDecks.value = Array.isArray(nextState.liamDecks)
+    ? nextState.liamDecks.join("\n")
     : "";
   elements.markDecks.value = Array.isArray(nextState.markDecks)
     ? nextState.markDecks.join("\n")
@@ -402,31 +507,57 @@ function applyState(state) {
 }
 
 function getSpinContext() {
+  syncMainSpinnerSettings();
+
   const sharedDeckList = parseDeckList(elements.sharedDecks.value);
+  const liamDeckList = parseDeckList(elements.liamDecks.value);
   const markDeckList = parseDeckList(elements.markDecks.value);
+  const deckPools = {
+    shared: sharedDeckList,
+    liam: liamDeckList,
+    mark: markDeckList,
+  };
   const player1Name = elements.player1.value;
   const player2Name = elements.player2.value;
   const retroEnabled = elements.retroEnabled.checked;
+  const combinePlayerDeckPools = elements.combinePlayerDeckPools.checked;
   const player1PoolKey = PLAYER_POOLS[player1Name];
   const player2PoolKey = PLAYER_POOLS[player2Name];
-  const bothUseSharedPool =
-    player1PoolKey === "shared" && player2PoolKey === "shared";
-  const player1Decks = getDecksForPlayer(player1Name, sharedDeckList, markDeckList);
-  const player2Decks = getDecksForPlayer(player2Name, sharedDeckList, markDeckList);
-  const player1WheelEntries = createMainWheelEntries(player1Decks, retroEnabled);
-  const player2WheelEntries = createMainWheelEntries(player2Decks, retroEnabled);
+  const playersShareDeckPool =
+    player1Name !== player2Name && player1PoolKey === player2PoolKey;
+  const mainMirrorDisabled =
+    combinePlayerDeckPools || elements.disableMainMirror.checked || playersShareDeckPool;
+  const selectedPlayerNames = [player1Name, player2Name];
+  const player1DeckOptions = createDeckOptionsForPlayer(
+    player1Name,
+    selectedPlayerNames,
+    deckPools,
+    combinePlayerDeckPools
+  );
+  const player2DeckOptions = createDeckOptionsForPlayer(
+    player2Name,
+    selectedPlayerNames,
+    deckPools,
+    combinePlayerDeckPools
+  );
+  const player1WheelEntries = createMainWheelEntries(player1DeckOptions, retroEnabled);
+  const player2WheelEntries = createMainWheelEntries(player2DeckOptions, retroEnabled);
 
   return {
     sharedDeckList,
+    liamDeckList,
     markDeckList,
+    deckPools,
     player1Name,
     player2Name,
     retroEnabled,
+    combinePlayerDeckPools,
     player1PoolKey,
     player2PoolKey,
-    bothUseSharedPool,
-    player1Decks,
-    player2Decks,
+    playersShareDeckPool,
+    mainMirrorDisabled,
+    player1DeckOptions,
+    player2DeckOptions,
     player1WheelEntries,
     player2WheelEntries,
   };
@@ -435,24 +566,12 @@ function getSpinContext() {
 function syncChosenDecks(context) {
   let didChange = false;
 
-  if (
-    !isValidChosenResult(
-      appState.player1Deck,
-      context.player1Decks,
-      context.retroEnabled
-    )
-  ) {
+  if (!isValidChosenResult(appState.player1Deck, context.player1WheelEntries)) {
     appState.player1Deck = "";
     didChange = true;
   }
 
-  if (
-    !isValidChosenResult(
-      appState.player2Deck,
-      context.player2Decks,
-      context.retroEnabled
-    )
-  ) {
+  if (!isValidChosenResult(appState.player2Deck, context.player2WheelEntries)) {
     appState.player2Deck = "";
     didChange = true;
   }
@@ -464,7 +583,7 @@ function syncChosenDecks(context) {
       didChange = true;
     }
   } else if (
-    context.bothUseSharedPool &&
+    context.mainMirrorDisabled &&
     appState.player1Deck &&
     appState.player1Deck !== RETRO_LABEL &&
     appState.player1Deck === appState.player2Deck
@@ -484,17 +603,20 @@ function getSpinAvailability(context) {
     };
   }
 
-  if (context.player1Decks.length === 0 || context.player2Decks.length === 0) {
+  if (
+    context.player1DeckOptions.length === 0 ||
+    context.player2DeckOptions.length === 0
+  ) {
     return {
       canSpin: false,
       reason: "Add at least one deck to each active pool before spinning.",
     };
   }
 
-  if (context.bothUseSharedPool && context.sharedDeckList.length < 2) {
+  if (context.mainMirrorDisabled && !canAvoidMainMirror(context)) {
     return {
       canSpin: false,
-      reason: "Andrew and Kirsten need at least two shared decks to spin both wheels.",
+      reason: "Add another deck before the main wheels can avoid a mirror result.",
     };
   }
 
@@ -765,12 +887,12 @@ function drawAllWheels(context) {
   drawWheel(
     wheelViews[0],
     context.player1WheelEntries,
-    formatDeckCount(context.player1Decks.length)
+    formatDeckCount(context.player1DeckOptions.length)
   );
   drawWheel(
     wheelViews[1],
     context.player2WheelEntries,
-    formatDeckCount(context.player2Decks.length)
+    formatDeckCount(context.player2DeckOptions.length)
   );
 }
 
@@ -894,12 +1016,34 @@ function render() {
   }
 
   elements.sharedCount.textContent = formatDeckCount(context.sharedDeckList.length);
+  elements.liamCount.textContent = formatDeckCount(context.liamDeckList.length);
   elements.markCount.textContent = formatDeckCount(context.markDeckList.length);
 
   elements.player1Heading.textContent = context.player1Name;
   elements.player2Heading.textContent = context.player2Name;
-  elements.player1Pool.textContent = `Uses ${getPoolName(context.player1Name)}`;
-  elements.player2Pool.textContent = `Uses ${getPoolName(context.player2Name)}`;
+  const sharedPoolPresentation = getSharedPoolPresentation([
+    context.player1Name,
+    context.player2Name,
+  ]);
+  const visiblePoolKeys = new Set([context.player1PoolKey, context.player2PoolKey]);
+  elements.sharedPoolCard.hidden = !visiblePoolKeys.has("shared");
+  elements.liamPoolCard.hidden = !visiblePoolKeys.has("liam");
+  elements.markPoolCard.hidden = !visiblePoolKeys.has("mark");
+  elements.sharedPoolHeading.textContent = sharedPoolPresentation.heading;
+  elements.sharedDecksLabel.textContent = sharedPoolPresentation.label;
+  elements.deckPoolsIntro.textContent = context.playersShareDeckPool
+    ? "Enter one deck per line. These players are sharing the same editable list."
+    : "Enter one deck per line. Only the active players' pools are shown here.";
+  const combinedPoolTag = `Uses ${getCombinedPoolDescription([
+    context.player1Name,
+    context.player2Name,
+  ])}`;
+  elements.player1Pool.textContent = context.combinePlayerDeckPools
+    ? combinedPoolTag
+    : `Uses ${getPoolName(context.player1Name)}`;
+  elements.player2Pool.textContent = context.combinePlayerDeckPools
+    ? combinedPoolTag
+    : `Uses ${getPoolName(context.player2Name)}`;
 
   setResultPill(elements.player1Result, appState.player1Deck);
   setResultPill(elements.player2Result, appState.player2Deck);
@@ -910,11 +1054,26 @@ function render() {
       "Player 1 and Player 2 need to be different people.",
       "warning"
     );
-  } else if (context.bothUseSharedPool) {
+  } else if (context.combinePlayerDeckPools) {
     setStatus(
       elements.matchStatus,
-      "Andrew and Kirsten share one pool, so Spin Both will force two different deck results.",
+      `Both main wheels are using the combined decks from ${formatNameList([
+        context.player1Name,
+        context.player2Name,
+      ])}.`,
       "info"
+    );
+  } else if (context.playersShareDeckPool) {
+    setStatus(
+      elements.matchStatus,
+      `${context.player1Name} and ${context.player2Name} share one deck pool, so Spin Both will force two different deck results.`,
+      "info"
+    );
+  } else if (elements.disableMainMirror.checked) {
+    setStatus(
+      elements.matchStatus,
+      `${context.player1Name} and ${context.player2Name} are using separate deck pools with mirror matches disabled.`,
+      "success"
     );
   } else {
     setStatus(
@@ -932,16 +1091,19 @@ function render() {
       "Choose two different players before spinning.",
       "warning"
     );
-  } else if (context.player1Decks.length === 0 || context.player2Decks.length === 0) {
+  } else if (
+    context.player1DeckOptions.length === 0 ||
+    context.player2DeckOptions.length === 0
+  ) {
     setStatus(
       elements.deckStatus,
       "Add decks to the active pool or pools before spinning both wheels.",
       "warning"
     );
-  } else if (context.bothUseSharedPool && context.sharedDeckList.length < 2) {
+  } else if (context.mainMirrorDisabled && !canAvoidMainMirror(context)) {
     setStatus(
       elements.deckStatus,
-      "Andrew and Kirsten need at least two shared decks to get two unique results.",
+      "Add another deck before the main wheels can avoid a mirror result.",
       "warning"
     );
   } else if (isSpinning) {
@@ -981,12 +1143,16 @@ function render() {
     elements.player1,
     elements.player2,
     elements.retroEnabled,
-    elements.disableRetroMirror,
+    elements.combinePlayerDeckPools,
     elements.sharedDecks,
+    elements.liamDecks,
     elements.markDecks,
   ].forEach((element) => {
     element.disabled = controlsLocked;
   });
+  elements.disableMainMirror.disabled =
+    controlsLocked || elements.combinePlayerDeckPools.checked;
+  elements.disableRetroMirror.disabled = controlsLocked;
 
   if (!isSpinning) {
     syncWheelRestPositions(context);
@@ -1126,20 +1292,18 @@ function chooseSpinResults(context) {
   let player2Result = chooseWeightedEntry(context.player2WheelEntries);
 
   if (
-    context.bothUseSharedPool &&
+    context.mainMirrorDisabled &&
     player1Result.entry.type === "deck" &&
     player2Result.entry.type === "deck" &&
     player1Result.entry.value === player2Result.entry.value
   ) {
     const availableEntries = context.player2WheelEntries
       .map((entry, index) => ({ entry, index }))
-      .filter(
-        (option) =>
-          option.entry.type === "deck" &&
-          option.entry.value !== player1Result.entry.value
-      );
+      .filter((option) => option.entry.value !== player1Result.entry.value);
 
-    player2Result = availableEntries[randomIndex(availableEntries.length)];
+    if (availableEntries.length > 0) {
+      player2Result = availableEntries[randomIndex(availableEntries.length)];
+    }
   }
 
   return {
@@ -1400,10 +1564,12 @@ function handleResize() {
   elements.player1,
   elements.player2,
   elements.retroEnabled,
+  elements.combinePlayerDeckPools,
+  elements.disableMainMirror,
   elements.disableRetroMirror,
 ].forEach((element) => element.addEventListener("change", handleFieldChange));
 
-[elements.sharedDecks, elements.markDecks].forEach((element) =>
+[elements.sharedDecks, elements.liamDecks, elements.markDecks].forEach((element) =>
   element.addEventListener("input", handleFieldChange)
 );
 

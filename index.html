@@ -37,6 +37,7 @@
               <select id="player1" name="player1">
                 <option value="Andrew">Andrew</option>
                 <option value="Kirsten">Kirsten</option>
+                <option value="Liam">Liam</option>
                 <option value="Mark">Mark</option>
               </select>
             </div>
@@ -46,6 +47,7 @@
               <select id="player2" name="player2">
                 <option value="Andrew">Andrew</option>
                 <option value="Kirsten">Kirsten</option>
+                <option value="Liam">Liam</option>
                 <option value="Mark">Mark</option>
               </select>
             </div>
@@ -56,6 +58,30 @@
                 <span>
                   <span class="retro-toggle__text">Enable RETRO</span>
                   <span class="retro-toggle__hint">Adds a fixed 5% RETRO slice per player.</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="field field--toggle">
+              <label class="retro-toggle" for="combinePlayerDeckPools">
+                <input
+                  id="combinePlayerDeckPools"
+                  name="combinePlayerDeckPools"
+                  type="checkbox"
+                />
+                <span>
+                  <span class="retro-toggle__text">Combine player deck pools</span>
+                  <span class="retro-toggle__hint">Adds both selected players' decks to both wheels and prefixes the results with the deck owner.</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="field field--toggle">
+              <label class="retro-toggle" for="disableMainMirror">
+                <input id="disableMainMirror" name="disableMainMirror" type="checkbox" />
+                <span>
+                  <span class="retro-toggle__text">Disable mirror match</span>
+                  <span class="retro-toggle__hint">Stops the main wheels from finishing on the exact same result.</span>
                 </span>
               </label>
             </div>
@@ -76,7 +102,7 @@
             <div class="wheel-meta">
               <p class="wheel-meta__eyebrow">Player 1</p>
               <h2 id="player1Heading">Andrew</h2>
-              <p id="player1Pool" class="pool-tag">Uses Andrew + Kirsten shared pool</p>
+              <p id="player1Pool" class="pool-tag">Uses Andrew's deck pool</p>
               <div class="result-block">
                 <span class="result-block__label">Last result</span>
                 <p id="player1Result" class="result-pill" data-state="idle">
@@ -114,7 +140,7 @@
         <section class="panel">
           <div class="section-heading">
             <h2>Spin Results</h2>
-            <p>The wheel checks which deck pool belongs to each player.</p>
+            <p>The wheel checks which deck pool or combined pool belongs to each player.</p>
           </div>
 
           <p id="deckStatus" class="status" data-tone="info"></p>
@@ -123,18 +149,16 @@
         <section class="panel">
           <div class="section-heading">
             <h2>Deck Pools</h2>
-            <p>Enter one deck per line. Andrew and Kirsten share the same list.</p>
+            <p id="deckPoolsIntro">Enter one deck per line. Only the active players' pools are shown here.</p>
           </div>
 
           <div class="pool-grid">
-            <article class="pool-card">
+            <article id="sharedPoolCard" class="pool-card">
               <div class="pool-card__header">
-                <h3>Andrew + Kirsten shared pool</h3>
+                <h3 id="sharedPoolHeading">Andrew's deck pool</h3>
                 <span id="sharedCount" class="count-pill">0 decks</span>
               </div>
-              <label class="sr-only" for="sharedDecks">
-                Andrew and Kirsten shared deck pool
-              </label>
+              <label id="sharedDecksLabel" class="sr-only" for="sharedDecks">Andrew's deck pool shared with Kirsten</label>
               <textarea
                 id="sharedDecks"
                 name="sharedDecks"
@@ -143,7 +167,21 @@
               ></textarea>
             </article>
 
-            <article class="pool-card">
+            <article id="liamPoolCard" class="pool-card">
+              <div class="pool-card__header">
+                <h3>Liam's deck pool</h3>
+                <span id="liamCount" class="count-pill">0 decks</span>
+              </div>
+              <label class="sr-only" for="liamDecks">Liam's deck pool</label>
+              <textarea
+                id="liamDecks"
+                name="liamDecks"
+                rows="10"
+                placeholder="Raging Bolt&#10;Zoroark build&#10;Ceruledge"
+              ></textarea>
+            </article>
+
+            <article id="markPoolCard" class="pool-card">
               <div class="pool-card__header">
                 <h3>Mark's deck pool</h3>
                 <span id="markCount" class="count-pill">0 decks</span>

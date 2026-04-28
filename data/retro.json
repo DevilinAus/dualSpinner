@@ -1,0 +1,28 @@
+{
+  "sharedDecks": [
+    {
+      "name": "Haymaker",
+      "copies": 2
+    },
+    {
+      "name": "raindance",
+      "copies": 2
+    },
+    {
+      "name": "venusaur",
+      "copies": 2
+    },
+    {
+      "name": "sponge",
+      "copies": 2
+    }
+  ],
+  "playerDecks": {
+    "Andrew": [
+      "alakazam"
+    ],
+    "Mark": [
+      "gengar"
+    ]
+  }
+}

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokemon Dual Spinner</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">Private Pokemon deck wheel</p>
+        <h1>Spin Both</h1>
+        <p class="intro">
+          A private, ad-free dual spinner for choosing Pokemon decks. Pick the two
+          players, keep each pool updated, and spin both wheels together.
+        </p>
+        <button
+          id="retroOverrideButton"
+          type="button"
+          class="retro-override-button"
+        >
+          RETRO OVERRIDE
+        </button>
+      </header>
+
+      <main class="layout">
+        <section class="panel control-panel">
+          <div class="section-heading">
+            <h2>Match Setup</h2>
+            <p>Choose the two players, then spin both wheels at the same time.</p>
+          </div>
+
+          <div class="control-grid">
+            <div class="field">
+              <label for="player1">Who is Player 1?</label>
+              <select id="player1" name="player1">
+                <option value="Andrew">Andrew</option>
+                <option value="Kirsten">Kirsten</option>
+                <option value="Mark">Mark</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="player2">Who is Player 2?</label>
+              <select id="player2" name="player2">
+                <option value="Andrew">Andrew</option>
+                <option value="Kirsten">Kirsten</option>
+                <option value="Mark">Mark</option>
+              </select>
+            </div>
+
+            <div class="field field--toggle">
+              <label class="retro-toggle" for="retroEnabled">
+                <input id="retroEnabled" name="retroEnabled" type="checkbox" />
+                <span>
+                  <span class="retro-toggle__text">Enable RETRO</span>
+                  <span class="retro-toggle__hint">Adds a fixed 5% RETRO slice per player.</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="field field--button">
+              <label class="button-label" for="spinBothButton">Random picker</label>
+              <button id="spinBothButton" type="button" class="spin-button">
+                Spin Both
+              </button>
+            </div>
+          </div>
+
+          <p id="matchStatus" class="status" data-tone="info"></p>
+        </section>
+
+        <section class="spinner-stage">
+          <article class="wheel-panel">
+            <div class="wheel-meta">
+              <p class="wheel-meta__eyebrow">Player 1</p>
+              <h2 id="player1Heading">Andrew</h2>
+              <p id="player1Pool" class="pool-tag">Uses Andrew + Kirsten shared pool</p>
+              <div class="result-block">
+                <span class="result-block__label">Last result</span>
+                <p id="player1Result" class="result-pill" data-state="idle">
+                  Waiting to spin
+                </p>
+              </div>
+            </div>
+
+            <div class="wheel-shell">
+              <div class="pointer" aria-hidden="true"></div>
+              <canvas id="wheel1" aria-label="Player 1 spinner wheel"></canvas>
+            </div>
+          </article>
+
+          <article class="wheel-panel">
+            <div class="wheel-meta">
+              <p class="wheel-meta__eyebrow">Player 2</p>
+              <h2 id="player2Heading">Mark</h2>
+              <p id="player2Pool" class="pool-tag">Uses Mark's deck pool</p>
+              <div class="result-block">
+                <span class="result-block__label">Last result</span>
+                <p id="player2Result" class="result-pill" data-state="idle">
+                  Waiting to spin
+                </p>
+              </div>
+            </div>
+
+            <div class="wheel-shell">
+              <div class="pointer" aria-hidden="true"></div>
+              <canvas id="wheel2" aria-label="Player 2 spinner wheel"></canvas>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Spin Results</h2>
+            <p>The wheel checks which deck pool belongs to each player.</p>
+          </div>
+
+          <p id="deckStatus" class="status" data-tone="info"></p>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>Deck Pools</h2>
+            <p>Enter one deck per line. Andrew and Kirsten share the same list.</p>
+          </div>
+
+          <div class="pool-grid">
+            <article class="pool-card">
+              <div class="pool-card__header">
+                <h3>Andrew + Kirsten shared pool</h3>
+                <span id="sharedCount" class="count-pill">0 decks</span>
+              </div>
+              <label class="sr-only" for="sharedDecks">
+                Andrew and Kirsten shared deck pool
+              </label>
+              <textarea
+                id="sharedDecks"
+                name="sharedDecks"
+                rows="10"
+                placeholder="Lost Box&#10;Charizard ex&#10;Gardevoir ex"
+              ></textarea>
+            </article>
+
+            <article class="pool-card">
+              <div class="pool-card__header">
+                <h3>Mark's deck pool</h3>
+                <span id="markCount" class="count-pill">0 decks</span>
+              </div>
+              <label class="sr-only" for="markDecks">Mark's deck pool</label>
+              <textarea
+                id="markDecks"
+                name="markDecks"
+                rows="10"
+                placeholder="Miraidon ex&#10;Dragapult ex&#10;Ancient Box"
+              ></textarea>
+            </article>
+          </div>
+
+          <p class="helper">
+            Deck data saves to <code>data/decks.json</code> so the pool stays with
+            the project.
+          </p>
+          <p id="saveStatus" class="status" data-tone="info">
+            Loading saved deck data...
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <div
+      id="retroOverlay"
+      class="retro-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="retroTitle"
+      hidden
+    >
+      <div class="retro-modal">
+        <button
+          id="closeRetroOverlayButton"
+          type="button"
+          class="icon-button"
+          aria-label="Close retro wheel"
+        >
+          X
+        </button>
+
+        <div class="section-heading retro-heading">
+          <p class="wheel-meta__eyebrow">Bonus wheel</p>
+          <h2 id="retroTitle">RETRO</h2>
+          <p id="retroPlayerList">RETRO was hit.</p>
+        </div>
+
+        <div class="retro-options">
+          <label class="retro-toggle" for="disableRetroMirror">
+            <input
+              id="disableRetroMirror"
+              name="disableRetroMirror"
+              type="checkbox"
+            />
+            <span>
+              <span class="retro-toggle__text">Disable mirrors</span>
+              <span class="retro-toggle__hint">Stops duplicate RETRO decks when both players roll RETRO.</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="retro-stage">
+          <article id="retroPanel1" class="retro-player">
+            <div class="wheel-meta">
+              <p class="wheel-meta__eyebrow">Retro player 1</p>
+              <h3 id="retroPlayer1Name">Player 1</h3>
+              <div class="result-block">
+                <span class="result-block__label">Retro result</span>
+                <p id="retroResult1" class="result-pill" data-state="idle">
+                  Waiting to spin
+                </p>
+              </div>
+            </div>
+
+            <div class="wheel-shell wheel-shell--retro">
+              <div class="pointer" aria-hidden="true"></div>
+              <canvas id="retroWheel1" aria-label="Retro player 1 spinner wheel"></canvas>
+            </div>
+          </article>
+
+          <article id="retroPanel2" class="retro-player">
+            <div class="wheel-meta">
+              <p class="wheel-meta__eyebrow">Retro player 2</p>
+              <h3 id="retroPlayer2Name">Player 2</h3>
+              <div class="result-block">
+                <span class="result-block__label">Retro result</span>
+                <p id="retroResult2" class="result-pill" data-state="idle">
+                  Waiting to spin
+                </p>
+              </div>
+            </div>
+
+            <div class="wheel-shell wheel-shell--retro">
+              <div class="pointer" aria-hidden="true"></div>
+              <canvas id="retroWheel2" aria-label="Retro player 2 spinner wheel"></canvas>
+            </div>
+          </article>
+        </div>
+
+        <div class="retro-actions">
+          <div class="result-block">
+            <span class="result-block__label">Retro summary</span>
+            <p id="retroSummary" class="result-pill" data-state="idle">
+              Waiting to spin
+            </p>
+          </div>
+          <button id="spinRetroButton" type="button" class="spin-button">
+            Spin Retro
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

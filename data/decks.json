@@ -1,0 +1,26 @@
+{
+  "player1": "Andrew",
+  "player2": "Kirsten",
+  "retroEnabled": true,
+  "disableRetroMirror": true,
+  "sharedDecks": [
+    "Mega Clefable",
+    "N's Zoroark",
+    "Teal Mask / Meganium",
+    "Mega Dragonite",
+    "Dragapult",
+    "Lucario",
+    "Slop Box",
+    "Rocket's Mewtwo"
+  ],
+  "markDecks": [
+    "Lucario",
+    "frilllish",
+    "deck c",
+    "deck d",
+    "deck 5"
+  ],
+  "player1Deck": "N's Zoroark",
+  "player2Deck": "RETRO",
+  "updatedAt": "2026-04-27T14:48:55.416Z"
+}
